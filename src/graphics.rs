@@ -2,6 +2,7 @@
 
 use crate::color::Color;
 use crate::{HEIGHT, WIDTH};
+use embedded_graphics::primitives::Rectangle;
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 
 /// Displayrotation
@@ -29,7 +30,7 @@ impl Default for DisplayRotation {
 /// - Drawing (With the help of DrawTarget/Embedded Graphics)
 /// - Rotations
 /// - Clearing
-pub trait Display: DrawTarget<BinaryColor> {
+pub trait Display: DrawTarget<Color = BinaryColor> {
     /// Clears the buffer of the display with the chosen background color
     fn clear_buffer(&mut self, background_color: Color) {
         let fill_color = if self.is_inverted() {
@@ -131,13 +132,24 @@ impl Display1in54 {
     }
 }
 
-impl DrawTarget<BinaryColor> for Display1in54 {
+impl DrawTarget for Display1in54 {
+    type Color = BinaryColor;
     type Error = core::convert::Infallible;
+    
+    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Pixel<Self::Color>>,
+    {
+        for pixel in pixels{
+            self.draw_helper(u32::from(WIDTH), u32::from(HEIGHT), pixel)?
+        }
 
-    fn draw_pixel(&mut self, pixel: Pixel<BinaryColor>) -> Result<(), Self::Error> {
-        self.draw_helper(u32::from(WIDTH), u32::from(HEIGHT), pixel)
+        Ok(())
     }
+}
 
+impl OriginDimensions for Display1in54
+{
     fn size(&self) -> Size {
         Size::new(u32::from(WIDTH), u32::from(HEIGHT))
     }
